@@ -1,0 +1,23 @@
+# Build output
+target/
+*.class
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+hs_err_pid*
+
+# IDE
+.idea/
+*.iml
+
+# Azure Functions
+local.settings.json
