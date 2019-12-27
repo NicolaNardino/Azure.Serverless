@@ -40,7 +40,7 @@ public class WorkflowManagerFunction {
         try {
             final Map body = (Map)request.getBody().get();
             final EventNotification eventNotification = new EventNotification(EventType.valueOf(body.get("EventType").toString()), body.get("EventData").toString());
-            publish(eventNotification, System.getenv("workflow-manager-eventgrid-topic-key"), System.getenv(System.getenv("workflow-manager-eventgrid-topic-endpoint")));
+            publish(eventNotification, System.getenv("workflow-manager-eventgrid-topic-key"), System.getenv("workflow-manager-eventgrid-topic-endpoint"));
             logger.info("Published "+eventNotification);
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(eventNotification)).build();
         }
