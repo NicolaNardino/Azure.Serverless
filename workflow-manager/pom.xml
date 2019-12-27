@@ -21,6 +21,7 @@
         <functionAppRegion>neu</functionAppRegion>
         <stagingDirectory>${project.build.directory}/azure-functions/${functionAppName}</stagingDirectory>
         <functionResourceGroup>serverless-rg</functionResourceGroup>
+        <subscriptionId>7ffbc23f-2663-4641-bf2d-cb24d185a6cb</subscriptionId>
     </properties>
 
 
@@ -28,6 +29,14 @@
         <dependency>
             <groupId>com.microsoft.azure.functions</groupId>
             <artifactId>azure-functions-java-library</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure-eventgrid</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -50,6 +59,7 @@
                     <resourceGroup>${functionResourceGroup}</resourceGroup>
                     <appName>${functionAppName}</appName>
                     <region>${functionAppRegion}</region>
+                    <subscriptionId>${subscriptionId}</subscriptionId>
                     <appSettings>
                         <!-- Run Azure Function from package file by default -->
                         <property>
