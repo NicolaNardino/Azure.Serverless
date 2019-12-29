@@ -16,9 +16,9 @@ public final class EventUtility {
         try {
             final EventGridClient client = new EventGridClientImpl(new TopicCredentials(topicKey));
             final String topicEndpointURI = String.format("https://%s/", new URI(topicEndpoint).getHost());
-            client.publishEvents(topicEndpointURI, Arrays.asList(new EventGridEvent(UUID.randomUUID().toString(), "subject", eventNotification, eventNotification.getType().toString(), DateTime.now(), "2.0")));
+            client.publishEvents(topicEndpointURI, Arrays.asList(new EventGridEvent(UUID.randomUUID().toString(),
+                    eventNotification.getType().toString(), eventNotification, eventNotification.getType().toString(), DateTime.now(), "2.0")));
         } catch (final Exception e) {
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
