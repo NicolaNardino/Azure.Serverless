@@ -1,6 +1,9 @@
 package com.projects.azure.market_data;
 
 import java.util.Arrays;
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * It contains the logic for creating the Bollinger Bands and it's based on the following definition:
@@ -16,14 +19,14 @@ import java.util.Arrays;
  * */
 public final class BollingerBandsManager {
 
-    private final MarketData[] closePricesTimeSeries;
-    private final int monthlyAverageLength;
+    private final MarketData[] marketData;
+    private final int movingAverageLength;
     private int timeSeriesIndex;
 
-    public BollingerBandsManager(final MarketData[] closePriceTimeSeries, final int monthlyAverageLength) {
-        this.closePricesTimeSeries = closePriceTimeSeries;
-        this.monthlyAverageLength = monthlyAverageLength;
-        this.timeSeriesIndex = monthlyAverageLength;
+    public BollingerBandsManager(final MarketData[] marketData, final int movingAverageLength) {
+        this.marketData = marketData;
+        this.movingAverageLength = movingAverageLength;
+        this.timeSeriesIndex = movingAverageLength;
     }
 
     /**
@@ -42,15 +45,21 @@ public final class BollingerBandsManager {
      * @see BollingerBands
      *
      * */
-    public BollingerBands buildBands() {
-        final int from = timeSeriesIndex - monthlyAverageLength;
+    private BollingerBands buildBands() {
+        final int from = timeSeriesIndex - movingAverageLength;
         final int to = timeSeriesIndex;
-        final MarketData[] xDaysPrices = Arrays.copyOfRange(closePricesTimeSeries, from, to);
-        final double middleBand = Arrays.stream(xDaysPrices).map(MarketData::getClosePrice).mapToDouble(Double::valueOf).average().getAsDouble();
-        final double standardDeviation = Math.sqrt(Arrays.stream(xDaysPrices).map(MarketData::getClosePrice).mapToDouble(price -> Math.pow(price.doubleValue() - middleBand, 2.0)).sum() / (xDaysPrices.length - 1));
+        final MarketData[] xDaysPrices = Arrays.copyOfRange(marketData, from, to);
+        final double middleBand = Arrays.stream(xDaysPrices).map(MarketData::getClose).mapToDouble(Double::valueOf).average().getAsDouble();
+        final double standardDeviation = Math.sqrt(Arrays.stream(xDaysPrices).map(MarketData::getClose).mapToDouble(price -> Math.pow(price.doubleValue() - middleBand, 2.0)).sum() / (xDaysPrices.length - 1));
         final double upperBand = middleBand + (2 * standardDeviation);
         final double lowerBand = middleBand - (2 * standardDeviation);
         timeSeriesIndex++;
         return new BollingerBands(middleBand, lowerBand, upperBand);
+    }
+
+    public static List<TradingStrategyInput> getTradingStrategyInput(final MarketData[] marketDataArray, final int movingAverageLength) {
+        final BollingerBandsManager bollingerBandsManager = new BollingerBandsManager(marketDataArray, movingAverageLength);
+        return Arrays.stream(marketDataArray).skip(movingAverageLength).map(marketDataItem -> new TradingStrategyInput(marketDataItem.getClose(), bollingerBandsManager.buildBands()))
+        .collect(toList());
     }
 }

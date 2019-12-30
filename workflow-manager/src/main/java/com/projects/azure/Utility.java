@@ -4,6 +4,8 @@ import com.projects.azure.market_data.MarketData;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -22,7 +24,7 @@ public final class Utility {
     public static Map<String, List<MarketData>> buildMarketData(final List<String> tickers, final LocalDate startDate, final LocalDate endDate) {
         final ThreadLocalRandom random = ThreadLocalRandom.current();
         return tickers.stream().collect(Collectors.toMap(k -> k, v -> getDatesBetween(startDate, endDate).sorted().
-                map(date -> new MarketData(date, random.nextDouble(0, 1), random.nextDouble(0, 1), random.nextDouble(0, 1), random.nextDouble(0, 1))).collect(toList())));
+                map(date -> new MarketData(date, round(random.nextDouble(0, 1), 2), round(random.nextDouble(0, 1), 2), round(random.nextDouble(0, 1), 2), round(random.nextDouble(0, 1), 2))).collect(toList())));
     }
 
     private static Stream<LocalDate> getDatesBetween(final LocalDate startDate, final LocalDate endDate) {
@@ -33,5 +35,9 @@ public final class Utility {
         final StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
         return sw.toString();
+    }
+
+    public static double round(final double value, final int decimalPlaces) {
+        return BigDecimal.valueOf(value).setScale(decimalPlaces, RoundingMode.HALF_UP).doubleValue();
     }
 }

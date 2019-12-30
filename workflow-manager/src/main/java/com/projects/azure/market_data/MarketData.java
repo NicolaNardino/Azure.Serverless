@@ -1,58 +1,50 @@
 package com.projects.azure.market_data;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public final class MarketData {
-    private static final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("YYYYMMdd");
+    private final LocalDate priceDate;
+    private final double close;
+    private final double open;
+    private final double high;
+    private final double low;
 
-    private final LocalDate closePriceDate;
-    private final double closePrice;
-    private final double openPrice;
-    private final double highPrice;
-    private final double lowPrice;
-
-    public MarketData(final LocalDate closePriceDate, final double closePrice, final double openPrice, final double highPrice, final double lowPrice) {
-        this.closePriceDate = closePriceDate;
-        this.closePrice = closePrice;
-        this.openPrice = openPrice;
-        this.highPrice = highPrice;
-        this.lowPrice = lowPrice;
+    public MarketData(final LocalDate priceDate, final double close, final double open, final double high, final double low) {
+        this.priceDate = priceDate;
+        this.close = close;
+        this.open = open;
+        this.high = high;
+        this.low = low;
     }
 
-    public LocalDate getClosePriceDate() {
-        return closePriceDate;
+    public LocalDate getPriceDate() {
+        return priceDate;
     }
 
-    public double getClosePrice() {
-        return closePrice;
+    public double getClose() {
+        return close;
     }
 
-    public double getOpenPrice() {
-        return openPrice;
+    public double getOpen() {
+        return open;
     }
 
-    public double getHighPrice() {
-        return highPrice;
+    public double getHigh() {
+        return high;
     }
 
-    public double getLowPrice() {
-        return lowPrice;
-    }
-
-    public static String toCSV(final MarketData marketData, final String separator) {
-        return marketData.getClosePriceDate().format(fmt)+separator+ String.format("%.2f", marketData.getClosePrice())+separator+String.format("%.2f", marketData.getHighPrice())+separator+
-                String.format("%.2f", marketData.getLowPrice())+separator+String.format("%.2f", marketData.getOpenPrice());
+    public double getLow() {
+        return low;
     }
 
     @Override
     public String toString() {
         return "MarketData{" +
-                "closePriceDate=" + closePriceDate +
-                ", closePrice=" + closePrice +
-                ", openPrice=" + openPrice +
-                ", highPrice=" + highPrice +
-                ", lowPrice=" + lowPrice +
+                "priceDate=" + priceDate +
+                ", close=" + close +
+                ", open=" + open +
+                ", high=" + high +
+                ", low=" + low +
                 '}';
     }
 }
