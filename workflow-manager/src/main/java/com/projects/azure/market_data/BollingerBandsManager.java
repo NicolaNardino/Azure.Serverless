@@ -3,6 +3,7 @@ package com.projects.azure.market_data;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.projects.azure.Utility.round;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -21,12 +22,12 @@ public final class BollingerBandsManager {
 
     private final MarketData[] marketData;
     private final int movingAverageLength;
-    private int timeSeriesIndex;
+    private int marketDataIndex;
 
     public BollingerBandsManager(final MarketData[] marketData, final int movingAverageLength) {
         this.marketData = marketData;
         this.movingAverageLength = movingAverageLength;
-        this.timeSeriesIndex = movingAverageLength;
+        this.marketDataIndex = movingAverageLength;
     }
 
     /**
@@ -46,20 +47,20 @@ public final class BollingerBandsManager {
      *
      * */
     private BollingerBands buildBands() {
-        final int from = timeSeriesIndex - movingAverageLength;
-        final int to = timeSeriesIndex;
+        final int from = marketDataIndex - movingAverageLength;
+        final int to = marketDataIndex;
         final MarketData[] xDaysPrices = Arrays.copyOfRange(marketData, from, to);
         final double middleBand = Arrays.stream(xDaysPrices).map(MarketData::getClose).mapToDouble(Double::valueOf).average().getAsDouble();
         final double standardDeviation = Math.sqrt(Arrays.stream(xDaysPrices).map(MarketData::getClose).mapToDouble(price -> Math.pow(price.doubleValue() - middleBand, 2.0)).sum() / (xDaysPrices.length - 1));
         final double upperBand = middleBand + (2 * standardDeviation);
         final double lowerBand = middleBand - (2 * standardDeviation);
-        timeSeriesIndex++;
-        return new BollingerBands(middleBand, lowerBand, upperBand);
+        marketDataIndex++;
+        return new BollingerBands(round(middleBand, 3), round(lowerBand, 3), round(upperBand, 3));//rounding to 3 decimal places just for the sake to spare space on the free Azure subscription, when persisting to json.
     }
 
     public static List<TradingStrategyInput> getTradingStrategyInput(final MarketData[] marketDataArray, final int movingAverageLength) {
         final BollingerBandsManager bollingerBandsManager = new BollingerBandsManager(marketDataArray, movingAverageLength);
-        return Arrays.stream(marketDataArray).skip(movingAverageLength).map(marketDataItem -> new TradingStrategyInput(marketDataItem.getClose(), bollingerBandsManager.buildBands()))
+        return Arrays.stream(marketDataArray).skip(movingAverageLength).map(marketDataItem -> new TradingStrategyInput(marketDataItem.getDate(), bollingerBandsManager.buildBands()))
         .collect(toList());
     }
 }

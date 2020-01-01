@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.AuthorizationLevel;
+import com.microsoft.azure.functions.annotation.BindingName;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.projects.azure.event.EventNotification;
@@ -16,7 +17,8 @@ import com.projects.azure.market_data.BollingerBandsManager;
 import com.projects.azure.market_data.MarketData;
 import com.projects.azure.market_data.TradingStrategyInput;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,15 +38,14 @@ public class WorkflowManagerFunction {
     private static final Gson gson = new GsonBuilder().create();
 
     @FunctionName("EventPublisher")
-    public HttpResponseMessage eventPublisher(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Object>> request,
+    public HttpResponseMessage eventPublisher(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
                                    final ExecutionContext context) {
         final Logger logger = context.getLogger();
-        logger.info("EventPublisher started.");
         try {
-            final Map body = (Map)request.getBody().get();
-            if (body.get("UploadMarketDataFiles").toString().equalsIgnoreCase("yes"))
+            final Map<String, String> body = request.getBody().get();
+            if (body.get("UploadMarketDataFiles").equalsIgnoreCase("yes"))
                 uploadMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), logger);
-            final EventNotification eventNotification = new EventNotification(EventType.valueOf(body.get("EventType").toString()), body.get("EventData").toString());
+            final EventNotification eventNotification = new EventNotification(EventType.valueOf(body.get("EventType")), body.get("EventData"));
             publish(eventNotification, System.getenv("workflow-manager-eventgrid-topic-key"), System.getenv("workflow-manager-eventgrid-topic-endpoint"));
             logger.info("Published "+eventNotification);
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(eventNotification)).build();
@@ -56,28 +57,57 @@ public class WorkflowManagerFunction {
     }
 
     @FunctionName("BuildBollingerBands")
-    public HttpResponseMessage buildBollingerBands(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Object>> request,
+    public HttpResponseMessage buildBollingerBands(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
                                                     final ExecutionContext context) {
         final Logger logger = context.getLogger();
-        logger.info("BuildBollingerBands started.");
         try {
-            final Map body = (Map)request.getBody().get();
             final String blobStorageConnectionString = System.getenv("supportblobstg-connection-string");
-            final BlobContainerClient inputContainerClient = getBlobContainerClient(blobStorageConnectionString, System.getenv("supportblobstg-input-data-container-name"));
-            final BlobContainerClient outputContainerClient = getBlobContainerClient(blobStorageConnectionString, System.getenv("supportblobstg-output-data-container-name"));
-            inputContainerClient.listBlobs().forEach(blobItem -> {
-                final ByteArrayOutputStream os = new ByteArrayOutputStream();
-                inputContainerClient.getBlobClient(blobItem.getName()).download(os);
-                final String blobText = new String(os.toByteArray(), Charset.defaultCharset());
+            final BlobContainerClient inputContainer = getBlobContainerClient(blobStorageConnectionString, System.getenv("supportblobstg-input-data-container-name"));
+            final BlobContainerClient outputContainer = getBlobContainerClient(blobStorageConnectionString, System.getenv("supportblobstg-output-data-container-name"));
+            inputContainer.listBlobs().forEach(blobItem -> {
+                final String blobText = getBlobContent(inputContainer, blobItem.getName(), Charset.defaultCharset());
                 final MarketData[] marketDataArray = Arrays.stream(blobText.split(System.lineSeparator())).map(line -> gson.fromJson(line, MarketData.class)).toArray(MarketData[]::new);
                 final List<TradingStrategyInput> tradingStrategyInput = BollingerBandsManager.getTradingStrategyInput(marketDataArray, 10);
-                uploadFiles(outputContainerClient, blobItem.getName(), tradingStrategyInput, logger);
+                uploadFiles(outputContainer, blobItem.getName(), tradingStrategyInput, logger);
             });
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson("{Result:\"Ok\"}")).build();
         }
         catch(final Exception e) {
             logger.warning(printStackTrace(e));
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).header("Content-Type", "application/json").body("{Error:\""+e.getMessage()+"\"").build();
+        }
+    }
+
+    @FunctionName("GetBollingerBands")
+    public HttpResponseMessage getBollingerBands(
+            @HttpTrigger(name = "req", methods = {HttpMethod.GET}, authLevel = AuthorizationLevel.FUNCTION, route="bollingerBands/{symbol}") HttpRequestMessage<Optional<String>> request,
+            @BindingName("symbol") final String symbol, final ExecutionContext context) {
+        final Logger logger = context.getLogger();
+        try {
+            final BlobContainerClient container = getBlobContainerClient(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-output-data-container-name"));
+            final String blobText = getBlobContent(container, symbol+".txt", Charset.defaultCharset());
+            final List<TradingStrategyInput> tradingStrategyInputs = Arrays.stream(blobText.split(System.lineSeparator())).map(line -> gson.fromJson(line, TradingStrategyInput.class)).collect(toList());
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(tradingStrategyInputs)).build();
+        }
+        catch(final Exception e) {
+            logger.warning(printStackTrace(e));
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).header("Content-Type", "application/json").body("{Error:\""+e.getMessage()+"\"}").build();
+        }
+    }
+
+    @FunctionName("WorkflowErrorManager")
+    public HttpResponseMessage workflowErrorManager(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
+                                                    final ExecutionContext context) {
+        final Logger logger = context.getLogger();
+        try {
+            final Map<String, String> body = request.getBody().get();
+            logger.info("Error source: "+body.get("Source")+"/ message: "+body.get("Message"));
+            //TODO: write error to CosmoDB or Storage Account.
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson("{Result:\"Ok\"}")).build();
+        }
+        catch(final Exception e) {
+            logger.warning(printStackTrace(e));
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).header("Content-Type", "application/json").body("{Error:\""+e.getMessage()+"\"}").build();
         }
     }
 
