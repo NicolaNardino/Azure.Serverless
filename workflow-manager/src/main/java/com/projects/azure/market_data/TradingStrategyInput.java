@@ -11,14 +11,6 @@ public final class TradingStrategyInput {
         this.bollingerBands = bollingerBands;
     }
 
-    public LocalDate getMarketDataDate() {
-        return marketDataDate;
-    }
-
-    public BollingerBands getBollingerBands() {
-        return bollingerBands;
-    }
-
     @Override
     public String toString() {
         return "TradingStrategyInput{" +

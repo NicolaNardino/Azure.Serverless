@@ -15,18 +15,6 @@ public final class BollingerBands {
         this.upperBand = upperBand;
     }
 
-    public double getMiddleBand() {
-        return middleBand;
-    }
-
-    public double getLowerBand() {
-        return lowerBand;
-    }
-
-    public double getUpperBand() {
-        return upperBand;
-    }
-
     @Override
     public String toString() {
         return "BollingerBands{" + "middleBand=" + middleBand + ", lowerBand=" + lowerBand + ", upperBand=" + upperBand + "}";

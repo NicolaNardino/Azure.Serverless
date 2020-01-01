@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -30,12 +31,14 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import static com.projects.azure.Utility.*;
-import static com.projects.azure.event.EventUtility.publish;
+import static java.time.LocalDate.parse;
 import static java.util.stream.Collectors.toList;
 
 public class WorkflowManagerFunction {
 
     private static final Gson gson = new GsonBuilder().create();
+    private static final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final String okResult = "{Result:\"Ok\"}";
 
     @FunctionName("EventPublisher")
     public HttpResponseMessage eventPublisher(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
@@ -43,10 +46,8 @@ public class WorkflowManagerFunction {
         final Logger logger = context.getLogger();
         try {
             final Map<String, String> body = request.getBody().get();
-            if (body.get("UploadMarketDataFiles").equalsIgnoreCase("yes"))
-                uploadMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), logger);
             final EventNotification eventNotification = new EventNotification(EventType.valueOf(body.get("EventType")), body.get("EventData"));
-            publish(eventNotification, System.getenv("workflow-manager-eventgrid-topic-key"), System.getenv("workflow-manager-eventgrid-topic-endpoint"));
+            publishEvent(eventNotification, System.getenv("workflow-manager-eventgrid-topic-key"), System.getenv("workflow-manager-eventgrid-topic-endpoint"));
             logger.info("Published "+eventNotification);
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(eventNotification)).build();
         }
@@ -56,9 +57,23 @@ public class WorkflowManagerFunction {
         }
     }
 
+    @FunctionName("DownloadMarketData")
+    public HttpResponseMessage downloadMarketData(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION, route="downdloadMarketData/{symbols}") HttpRequestMessage<Optional<Map<String, String>>> request,
+                                                  @BindingName("symbols") final String symbols, final ExecutionContext context) {
+        final Logger logger = context.getLogger();
+        try {
+            uploadDummyMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), Arrays.asList(symbols.split(";")),
+                    parse(request.getQueryParameters().get("startDate"), fmt), logger);
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(okResult).build();
+        }
+        catch(final Exception e) {
+            logger.warning(printStackTrace(e));
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).header("Content-Type", "application/json").body("{Error:\""+e.getMessage()+"\"}").build();
+        }
+    }
+
     @FunctionName("BuildBollingerBands")
-    public HttpResponseMessage buildBollingerBands(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
-                                                    final ExecutionContext context) {
+    public HttpResponseMessage buildBollingerBands(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request, final ExecutionContext context) {
         final Logger logger = context.getLogger();
         try {
             final String blobStorageConnectionString = System.getenv("supportblobstg-connection-string");
@@ -70,7 +85,7 @@ public class WorkflowManagerFunction {
                 final List<TradingStrategyInput> tradingStrategyInput = BollingerBandsManager.getTradingStrategyInput(marketDataArray, 10);
                 uploadFiles(outputContainer, blobItem.getName(), tradingStrategyInput, logger);
             });
-            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson("{Result:\"Ok\"}")).build();
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(okResult)).build();
         }
         catch(final Exception e) {
             logger.warning(printStackTrace(e));
@@ -103,7 +118,7 @@ public class WorkflowManagerFunction {
             final Map<String, String> body = request.getBody().get();
             logger.info("Error source: "+body.get("Source")+"/ message: "+body.get("Message"));
             //TODO: write error to CosmoDB or Storage Account.
-            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson("{Result:\"Ok\"}")).build();
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(okResult)).build();
         }
         catch(final Exception e) {
             logger.warning(printStackTrace(e));
@@ -111,10 +126,9 @@ public class WorkflowManagerFunction {
         }
     }
 
-    private static void uploadMarketDataFiles(final String blobStorageConnectionString, final String containerName, final Logger logger) {
+    private static void uploadDummyMarketDataFiles(final String blobStorageConnectionString, final String containerName, final List<String> symbols, final LocalDate marketDataStartDate, final Logger logger) {
         final BlobContainerClient containerClient = getBlobContainerClient(blobStorageConnectionString, containerName);
-        buildMarketData(tickers, LocalDate.of(2019, 1, 1), LocalDate.now()).
-                forEach((k, v) -> uploadFiles(containerClient, k, v, logger));
+        buildMarketData(symbols.isEmpty()?defaultSymbols:symbols, marketDataStartDate, LocalDate.now()).forEach((k, v) -> uploadFiles(containerClient, k, v, logger));
     }
 
     private static <T> void uploadFiles(final BlobContainerClient containerClient, final String blobFileName, final List<T> v, final Logger logger) {
