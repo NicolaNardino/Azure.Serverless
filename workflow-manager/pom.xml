@@ -14,14 +14,14 @@
     <artifactId>workflow-manager</artifactId>
     <packaging>jar</packaging>
 
-    <name>Workflow Manager</name>
+    <name>Workflow Manager Azure Functions.</name>
 
     <properties>
         <functionAppName>workflow-manager-function</functionAppName>
         <functionAppRegion>neu</functionAppRegion>
         <stagingDirectory>${project.build.directory}/azure-functions/${functionAppName}</stagingDirectory>
         <functionResourceGroup>serverless-rg</functionResourceGroup>
-        <subscriptionId>7ffbc23f-2663-4641-bf2d-cb24d185a6cb</subscriptionId>
+        <subscriptionId>7ddtf45g-9094-6439-t65z-tu65i908t5o</subscriptionId>
     </properties>
 
 
@@ -65,7 +65,6 @@
                     <region>${functionAppRegion}</region>
                     <subscriptionId>${subscriptionId}</subscriptionId>
                     <appSettings>
-                        <!-- Run Azure Function from package file by default -->
                         <property>
                             <name>WEBSITE_RUN_FROM_PACKAGE</name>
                             <value>0</value>
