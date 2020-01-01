@@ -7,3 +7,4 @@ Features:
 - Azure Functions for the Serverless code.  
 - Azure Data Factory for the data transformation pipeline, i.e., from row Market Data to Bollinger Bands and event notification.
 - Azure Logic App for triggering the front-to-back process and workflow managements. Specifically, it gets triggered by a custom event.
+- Azure Key Vault for storing storage and event grid topic secrets.
