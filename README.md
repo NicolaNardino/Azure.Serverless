@@ -10,6 +10,7 @@ Main features:
 - Azure Key Vault for storing storage and event grid topic secrets.
 - Event Grid Topic subscriptions to Function Apps. 
 
-...
 
 ![image](https://user-images.githubusercontent.com/8766989/71683525-15f45d00-2d93-11ea-8756-504d1c73c252.png)
+
+...
