@@ -1,4 +1,4 @@
-# Azure.Serverless
+# Welcone to Azure.Serverless
 It's about putting together some of the most interesting Azure Serverless resources to build a cloud-native application that uploads Market Data to Blob storage and then, in a event-based, fashion builds Bollinger Bands as Trading Strategy inputs.
 It also provides an API to get the bands.
 
@@ -11,6 +11,5 @@ Main features:
 - Event Grid Topic subscriptions to Function Apps. 
 
 
-![image](https://user-images.githubusercontent.com/8766989/71683525-15f45d00-2d93-11ea-8756-504d1c73c252.png)
 
 ...
