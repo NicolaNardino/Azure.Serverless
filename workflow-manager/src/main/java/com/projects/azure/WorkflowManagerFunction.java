@@ -6,11 +6,10 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.microsoft.azure.eventgrid.models.EventGridEvent;
+import com.microsoft.azure.eventgrid.models.StorageBlobCreatedEventData;
 import com.microsoft.azure.functions.*;
-import com.microsoft.azure.functions.annotation.AuthorizationLevel;
-import com.microsoft.azure.functions.annotation.BindingName;
-import com.microsoft.azure.functions.annotation.FunctionName;
-import com.microsoft.azure.functions.annotation.HttpTrigger;
+import com.microsoft.azure.functions.annotation.*;
 import com.projects.azure.event.EventNotification;
 import com.projects.azure.event.EventType;
 import com.projects.azure.market_data.BollingerBandsManager;
@@ -111,7 +110,7 @@ public class WorkflowManagerFunction {
     }
 
     @FunctionName("WorkflowErrorManager")
-    public HttpResponseMessage workflowErrorManager(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
+    public HttpResponseMessage workflowErrorManager(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) final HttpRequestMessage<Optional<Map<String, String>>> request,
                                                     final ExecutionContext context) {
         final Logger logger = context.getLogger();
         try {
@@ -123,6 +122,19 @@ public class WorkflowManagerFunction {
         catch(final Exception e) {
             logger.warning(printStackTrace(e));
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).header("Content-Type", "application/json").body("{Error:\""+e.getMessage()+"\"}").build();
+        }
+    }
+
+    @FunctionName("ProcessedMarketDataAvailableEventGridListener")
+    public void processedMarketDataAvailableEventGridListener(@EventGridTrigger(name = "data") final String data, final ExecutionContext context) {
+        final Logger logger = context.getLogger();
+        try {
+            final EventGridEvent eventGridEvent = gson.fromJson(data, EventGridEvent.class);
+            logger.info("Event grid event: "+eventGridEvent.data()+"/ "+eventGridEvent.subject()+"/ "+eventGridEvent.eventType());
+            final EventNotification eventNotification = gson.fromJson((String) eventGridEvent.data(), EventNotification.class);
+            logger.info("Received event: "+eventNotification);
+        } catch (Exception e) {
+            logger.warning(printStackTrace(e));
         }
     }
 
