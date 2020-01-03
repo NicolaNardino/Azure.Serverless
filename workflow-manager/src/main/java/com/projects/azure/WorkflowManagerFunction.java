@@ -37,7 +37,7 @@ public class WorkflowManagerFunction {
 
     private static final Gson gson = new GsonBuilder().create();
     private static final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final String okResult = "{Result:\"Ok\"}";
+    private static final String okResult = gson.toJson(new OkResult("Ok"));
 
     @FunctionName("EventPublisher")
     public HttpResponseMessage eventPublisher(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
@@ -86,7 +86,7 @@ public class WorkflowManagerFunction {
                 final List<TradingStrategyInput> tradingStrategyInput = BollingerBandsManager.getTradingStrategyInput(marketDataArray, 10);
                 uploadFiles(outputContainer, blobItem.getName(), tradingStrategyInput, logger);
             });
-            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(okResult)).build();
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(okResult).build();
         }
         catch(final Exception e) {
             logger.warning(printStackTrace(e));
@@ -119,7 +119,7 @@ public class WorkflowManagerFunction {
             final Map<String, String> body = request.getBody().get();
             logger.info("Error source: "+body.get("Source")+"/ message: "+body.get("Message"));
             //TODO: write error to CosmoDB or Storage Account.
-            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(gson.toJson(okResult)).build();
+            return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(okResult).build();
         }
         catch(final Exception e) {
             logger.warning(printStackTrace(e));
@@ -142,14 +142,14 @@ public class WorkflowManagerFunction {
 
     private static void uploadDummyMarketDataFiles(final String blobStorageConnectionString, final String containerName, final List<String> symbols, final LocalDate marketDataStartDate, final Logger logger) {
         final BlobContainerClient containerClient = getBlobContainerClient(blobStorageConnectionString, containerName);
-        buildMarketData(symbols.isEmpty()?defaultSymbols:symbols, marketDataStartDate, LocalDate.now()).forEach((k, v) -> uploadFiles(containerClient, k, v, logger));
+        buildMarketData(symbols.isEmpty()?defaultSymbols:symbols, marketDataStartDate, LocalDate.now()).forEach((k, v) -> uploadFiles(containerClient, k+".txt", v, logger));
     }
 
     private static <T> void uploadFiles(final BlobContainerClient containerClient, final String blobFileName, final List<T> v, final Logger logger) {
         try {
-            final Path tempFile = Files.createTempFile(blobFileName, ".txt");
+            final Path tempFile = Files.createTempFile(blobFileName, null);
             Files.write(tempFile, v.stream().map(gson::toJson).collect(toList()), Charset.defaultCharset());
-            final BlobClient blobClient = containerClient.getBlobClient(blobFileName+".txt");
+            final BlobClient blobClient = containerClient.getBlobClient(blobFileName);
             blobClient.uploadFromFile(tempFile.toAbsolutePath().toString(), true);
             Files.deleteIfExists(tempFile);
         } catch (final IOException e) {
@@ -164,5 +164,13 @@ public class WorkflowManagerFunction {
         if (!containerClient.exists())
             containerClient.create();
         return containerClient;
+    }
+
+    private static class OkResult {
+        private final String message;
+
+        public OkResult(final String message) {
+            this.message = message;
+        }
     }
 }
