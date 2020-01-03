@@ -11,5 +11,20 @@ Main features:
 - Event Grid Topic subscriptions to Function Apps. 
 
 
+## Logic App
+![image](https://user-images.githubusercontent.com/8766989/71740926-d0e92d00-2e5d-11ea-9043-c0280e96ef9b.png)
 
-...
+## Data Factory
+![image](https://user-images.githubusercontent.com/8766989/71740995-01c96200-2e5e-11ea-96e5-0bd009a4677f.png)
+
+## Azure Functions
+![image](https://user-images.githubusercontent.com/8766989/71741044-24f41180-2e5e-11ea-8d57-b37a2fc7ae71.png)
+
+## Event Grid Topic Subscriptions
+![image](https://user-images.githubusercontent.com/8766989/71741129-54a31980-2e5e-11ea-80ed-5e635c9522f8.png)
+
+### Development Environment
+- Ubuntu 19.04.
+- IntelliJ.
+- Java 8.
+- Azure Core Functions.
