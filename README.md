@@ -12,7 +12,7 @@ Main features:
 
 
 ## Logic App
-![image](https://user-images.githubusercontent.com/8766989/71740926-d0e92d00-2e5d-11ea-9043-c0280e96ef9b.png)
+![image](https://user-images.githubusercontent.com/8766989/71741597-941e3580-2e5f-11ea-978b-914afda40a4d.png)
 
 ## Data Factory
 ![image](https://user-images.githubusercontent.com/8766989/71740995-01c96200-2e5e-11ea-96e5-0bd009a4677f.png)
