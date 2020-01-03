@@ -62,8 +62,9 @@ public class WorkflowManagerFunction {
         final Logger logger = context.getLogger();
         try {
 
-            uploadDummyMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), Arrays.asList(request.getBody().get().get("Symbols").split(";")),
-                    parse(request.getBody().get().get("StartDate"), fmt), logger);
+            final Map<String, String> requestMap = request.getBody().get();
+            uploadDummyMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), Arrays.asList(requestMap.get("Symbols").split(";")),
+                    parse(requestMap.get("StartDate"), fmt), logger);
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(okResult).build();
         }
         catch(final Exception e) {
