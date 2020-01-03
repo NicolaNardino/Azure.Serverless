@@ -23,6 +23,12 @@ Main features:
 ## Event Grid Topic Subscriptions
 ![image](https://user-images.githubusercontent.com/8766989/71741129-54a31980-2e5e-11ea-80ed-5e635c9522f8.png)
 
+## Workflow Trigger
+The whole workflow gets triggered by raising the event "MarketDataAvailable", technically by calling a RESTful endpoint running on a Azure Function: 
+```unix
+curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content-Type: application/json" -X POST https://workflow-manager-function.azurewebsites.net/api/EventPublisher?code=xxx
+```unix
+
 ### Development Environment
 - Ubuntu 19.04.
 - IntelliJ.
