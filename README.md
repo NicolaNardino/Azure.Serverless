@@ -27,11 +27,11 @@ Main features:
 The whole workflow gets triggered by raising the event "MarketDataAvailable", technically by calling a RESTful endpoint running on a Azure Function: 
 ```unix
 curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content-Type: application/json" -X POST https://workflow-manager-function.azurewebsites.net/api/EventPublisher?code=xxx
-```unix
+```
 
 ### Development Environment
 - Ubuntu 19.04.
 - IntelliJ.
-- Java 8.
+- Java 8. (Version 8 due to compatibility with the Azure Functions Java Runtime being capped at that Java version).
 - Azure Core Functions.
 - Azure Free Account.
