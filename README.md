@@ -1,4 +1,4 @@
-# Welcone to Azure.Serverless
+# Welcome to Azure.Serverless
 It's about putting together some of the most interesting Azure Serverless resources to build a cloud-native application that uploads Market Data to Blob storage and then, in a event-based, fashion builds Bollinger Bands as Trading Strategy inputs.
 It also provides an API to get the bands.
 
@@ -34,3 +34,4 @@ curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content
 - IntelliJ.
 - Java 8.
 - Azure Core Functions.
+- Azure Free Account.
