@@ -57,12 +57,13 @@ public class WorkflowManagerFunction {
     }
 
     @FunctionName("DownloadMarketData")
-    public HttpResponseMessage downloadMarketData(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION, route="downdloadMarketData/{symbols}") HttpRequestMessage<Optional<Map<String, String>>> request,
-                                                  @BindingName("symbols") final String symbols, final ExecutionContext context) {
+    public HttpResponseMessage downloadMarketData(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
+                                                  final ExecutionContext context) {
         final Logger logger = context.getLogger();
         try {
-            uploadDummyMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), Arrays.asList(symbols.split(";")),
-                    parse(request.getQueryParameters().get("startDate"), fmt), logger);
+
+            uploadDummyMarketDataFiles(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-input-data-container-name"), Arrays.asList(request.getBody().get().get("Symbols").split(";")),
+                    parse(request.getBody().get().get("StartDate"), fmt), logger);
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(okResult).build();
         }
         catch(final Exception e) {
