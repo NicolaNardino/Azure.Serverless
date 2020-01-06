@@ -7,7 +7,6 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.microsoft.azure.eventgrid.models.EventGridEvent;
-import com.microsoft.azure.eventgrid.models.StorageBlobCreatedEventData;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
 import com.projects.azure.event.EventNotification;
@@ -21,12 +20,10 @@ import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static com.projects.azure.Utility.*;
@@ -37,7 +34,7 @@ public class WorkflowManagerFunction {
 
     private static final Gson gson = new GsonBuilder().create();
     private static final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final String okResult = gson.toJson(new OkResult("Ok"));
+    private static final String okResult = "{\"result\":\"ok\"}";
 
     @FunctionName("EventPublisher")
     public HttpResponseMessage eventPublisher(@HttpTrigger(name = "req", methods = {HttpMethod.POST}, authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<Map<String, String>>> request,
@@ -84,7 +81,7 @@ public class WorkflowManagerFunction {
                 final String blobText = getBlobContent(inputContainer, blobItem.getName(), Charset.defaultCharset());
                 final MarketData[] marketDataArray = Arrays.stream(blobText.split(System.lineSeparator())).map(line -> gson.fromJson(line, MarketData.class)).toArray(MarketData[]::new);
                 final List<TradingStrategyInput> tradingStrategyInput = BollingerBandsManager.getTradingStrategyInput(marketDataArray, 10);
-                uploadFiles(outputContainer, blobItem.getName(), tradingStrategyInput, logger);
+                uploadFile(outputContainer, blobItem.getName(), tradingStrategyInput, logger);
             });
             return request.createResponseBuilder(HttpStatus.OK).header("Content-Type", "application/json").body(okResult).build();
         }
@@ -127,25 +124,29 @@ public class WorkflowManagerFunction {
         }
     }
 
-    @FunctionName("ProcessedMarketDataAvailableEventGridListener")
-    public void processedMarketDataAvailableEventGridListener(@EventGridTrigger(name = "data") final String data, final ExecutionContext context) {
+    @FunctionName("TradingStrategyDataAvailableEventGridListener")
+    public void tradingStrategyDataAvailableEventGridListener(@EventGridTrigger(name = "data") final String data, final ExecutionContext context) {
         final Logger logger = context.getLogger();
         try {
+            final String evenLogFileName = "eventLog.txt";
             final EventGridEvent eventGridEvent = gson.fromJson(data, EventGridEvent.class);
             logger.info("Event grid event: "+eventGridEvent.data()+"/ "+eventGridEvent.subject()+"/ "+eventGridEvent.eventType());
             final EventNotification eventNotification = gson.fromJson((String) eventGridEvent.data(), EventNotification.class);
             logger.info("Received event: "+eventNotification);
-        } catch (Exception e) {
+            final BlobContainerClient containerClient = getBlobContainerClient(System.getenv("supportblobstg-connection-string"), System.getenv("supportblobstg-output-data-container-name"));
+            final String blobText = getBlobContent(containerClient, evenLogFileName, Charset.defaultCharset());
+            uploadFile(containerClient, evenLogFileName, Arrays.asList(Arrays.asList(blobText, new Date().toString())), logger);
+        } catch (final Exception e) {
             logger.warning(printStackTrace(e));
         }
     }
 
     private static void uploadDummyMarketDataFiles(final String blobStorageConnectionString, final String containerName, final List<String> symbols, final LocalDate marketDataStartDate, final Logger logger) {
         final BlobContainerClient containerClient = getBlobContainerClient(blobStorageConnectionString, containerName);
-        buildMarketData(symbols.isEmpty()?defaultSymbols:symbols, marketDataStartDate, LocalDate.now()).forEach((k, v) -> uploadFiles(containerClient, k+".txt", v, logger));
+        buildMarketData(symbols.isEmpty()?defaultSymbols:symbols, marketDataStartDate, LocalDate.now()).forEach((k, v) -> uploadFile(containerClient, k+".txt", v, logger));
     }
 
-    private static <T> void uploadFiles(final BlobContainerClient containerClient, final String blobFileName, final List<T> v, final Logger logger) {
+    private static <T> void uploadFile(final BlobContainerClient containerClient, final String blobFileName, final List<T> v, final Logger logger) {
         try {
             final Path tempFile = Files.createTempFile(blobFileName, null);
             Files.write(tempFile, v.stream().map(gson::toJson).collect(toList()), Charset.defaultCharset());
@@ -164,13 +165,5 @@ public class WorkflowManagerFunction {
         if (!containerClient.exists())
             containerClient.create();
         return containerClient;
-    }
-
-    private static class OkResult {
-        private final String message;
-
-        public OkResult(final String message) {
-            this.message = message;
-        }
     }
 }

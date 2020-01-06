@@ -61,9 +61,13 @@ public final class Utility {
     }
 
     static String getBlobContent(final BlobContainerClient container, final String blobFileName, final Charset charSet) {
-        final ByteArrayOutputStream os = new ByteArrayOutputStream();
-        container.getBlobClient(blobFileName).download(os);
-        return new String(os.toByteArray(), charSet);
+        try(final ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            container.getBlobClient(blobFileName).download(os);
+            return new String(os.toByteArray(), charSet);
+        }
+        catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Stream<LocalDate> getDatesBetween(final LocalDate startDate, final LocalDate endDate) {
