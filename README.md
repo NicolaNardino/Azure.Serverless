@@ -33,5 +33,11 @@ curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content
 - Ubuntu 19.04.
 - IntelliJ.
 - Java 8. (Version 8 due to compatibility with the Azure Functions Java Runtime being capped at that Java version).
+
+#### Required Software
+First off, request an Azure free account, then install the following:
+- Azure CLI.
 - Azure Core Functions.
-- Azure Free Account.
+- NET Core, required for building Azure Functions with triggers like EventGrid.
+
+TODO: set up instructions...
