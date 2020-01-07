@@ -28,6 +28,8 @@ The whole workflow gets triggered by raising the event "MarketDataAvailable", te
 ```unix
 curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content-Type: application/json" -X POST https://workflow-manager-function.azurewebsites.net/api/EventPublisher?code=xxx
 ```
+### IAM
+TODO:...
 
 ### Development Environment
 - Ubuntu 19.04.
@@ -35,9 +37,9 @@ curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content
 - Java 8. (Version 8 due to compatibility with the Azure Functions Java Runtime being capped at that Java version).
 
 #### Required Software
-First off, request an Azure free account, then install the following:
-- Azure CLI.
-- Azure Core Functions.
-- NET Core, required for building Azure Functions with triggers like EventGrid.
+First off, request an [Azure free account](https://azure.microsoft.com/en-us), then install the following:
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest).
+- [Azure Functions Core Tools](https://github.com/Azure/azure-functions-core-tools).
+- [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/linux-package-manager-ubuntu-1904), required for building Azure Functions with triggers like EventGrid.
 
-TODO: set up instructions...
+Very useful [link](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-maven-intellij) on how to create an Azure Functions project with IntelliJ from an archetype, package and deploy to an Azure subscription. 
