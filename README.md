@@ -29,7 +29,11 @@ The whole workflow gets triggered by raising the event "MarketDataAvailable", te
 curl -d '{"EventType":"MarketDataAvailable", "EventData":"no data"}' -H "Content-Type: application/json" -X POST https://workflow-manager-function.azurewebsites.net/api/EventPublisher?code=xxx
 ```
 ### IAM
-TODO:...
+I've managed the access to resources in a mixed way:
+- Through directly using resource keys, which is a no-go for productive systems.
+- Through Service Principal. That's good, but not ideal, from my point of view.
+- Through Managed Identities, both System (MSI) or User generated. 
+...
 
 ### Development Environment
 - Ubuntu 19.04.
